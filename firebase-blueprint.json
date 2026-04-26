@@ -1,0 +1,153 @@
+{
+  "entities": {
+    "Blog": {
+      "title": "Blog/Story Post",
+      "description": "Content for blogs, stories, and news",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "content": { "type": "string" },
+        "image": { "type": "string" },
+        "author": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "category": { "type": "string", "enum": ["Blog", "Stories", "News"] },
+        "authorId": { "type": "string" }
+      },
+      "required": ["title", "description", "content", "category", "date"]
+    },
+    "Law": {
+      "title": "Indian Law Entry",
+      "description": "Details about IPC sections or laws",
+      "type": "object",
+      "properties": {
+        "section": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "example": { "type": "string" }
+      },
+      "required": ["section", "title", "description"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Extended user information and badges",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "conversationsCount": { "type": "number" },
+        "badges": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "streak": { "type": "number" },
+        "lastActive": { "type": "string", "format": "date-time" },
+        "customGeminiKey": { "type": "string" },
+        "progress": { "type": "number" },
+        "totalBadges": { "type": "number" }
+      }
+    },
+    "BadgeHistory": {
+      "title": "Badge Earning Record",
+      "description": "Details about an earned badge",
+      "type": "object",
+      "properties": {
+        "badgeName": { "type": "string" },
+        "earnedAt": { "type": "string", "format": "date-time" },
+        "pointsAtTime": { "type": "number" }
+      }
+    },
+    "ProgressLog": {
+      "title": "Progress Point Log",
+      "description": "History of how points were earned",
+      "type": "object",
+      "properties": {
+        "points": { "type": "number" },
+        "source": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Contact": {
+      "title": "Contact Submission",
+      "description": "Messages sent through the contact form",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "message"]
+    },
+    "ChatSession": {
+       "title": "Chat Session",
+       "description": "A conversation between user and AI",
+       "type": "object",
+       "properties": {
+         "userId": { "type": "string" },
+         "title": { "type": "string" },
+         "createdAt": { "type": "string", "format": "date-time" },
+         "lastMessage": { "type": "string" }
+       }
+    },
+    "AccessLog": {
+      "title": "Access Log",
+      "description": "Records of user authentication and key neural events.",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string" },
+        "source": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["item", "login", "auth", "neural"] }
+      },
+      "required": ["action", "timestamp", "type"]
+    }
+  },
+  "firestore": {
+    "blogs": {
+      "schema": "Blog",
+      "description": "Collection for blog posts"
+    },
+    "stories": {
+      "schema": "Blog",
+      "description": "Collection for stories"
+    },
+    "news": {
+      "schema": "Blog",
+      "description": "Collection for AI generated news"
+    },
+    "contacts": {
+      "schema": "Contact",
+      "description": "User feedback and queries"
+    },
+    "laws": {
+      "schema": "Law",
+      "description": "Collection for Indian laws/IPC"
+    },
+    "users": {
+       "schema": "UserProfile",
+       "description": "User profile specific data"
+    },
+    "users/{userId}/badgeHistory": {
+       "schema": "BadgeHistory",
+       "description": "History of badges earned by the user"
+    },
+    "users/{userId}/progressLogs": {
+       "schema": "ProgressLog",
+       "description": "Detailed history of points earned"
+    },
+    "users/{userId}/chats": {
+       "schema": "ChatSession",
+       "description": "User's chat conversations"
+    },
+    "users/{userId}/chats/{chatId}/messages": {
+       "schema": "object",
+       "description": "Individual messages in a chat"
+    },
+    "users/{userId}/accessLogs": {
+       "schema": "AccessLog",
+       "description": "User security and access logs."
+    }
+  }
+}

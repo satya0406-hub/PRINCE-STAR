@@ -1,0 +1,156 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitive Definition
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'satyamanikantareddysathi@gmail.com';
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.email == 'satyamanikantareddysathi@gmail.com'); 
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Blueprints ---
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['displayName', 'email', 'conversationsCount', 'badges', 'lastActive', 'createdAt']) &&
+             data.displayName is string &&
+             data.email is string &&
+             data.conversationsCount is number &&
+             data.badges is list &&
+             data.lastActive is timestamp &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidBadgeHistory(data) {
+      return data.keys().hasAll(['badgeName', 'earnedAt', 'pointsAtTime']) &&
+             data.badgeName is string &&
+             data.earnedAt is timestamp &&
+             data.pointsAtTime is number;
+    }
+
+    function isValidProgressLog(data) {
+      return data.keys().hasAll(['points', 'source', 'timestamp']) &&
+             data.points is number &&
+             data.source is string &&
+             data.timestamp is timestamp;
+    }
+
+    function isValidBlog(data) {
+      return data.keys().hasAll(['title', 'description', 'content', 'category', 'date']) &&
+             data.title is string && data.title.size() <= 500 &&
+             data.description is string && data.description.size() <= 1000 &&
+             data.content is string &&
+             data.category in ['Blog', 'Stories', 'News', 'Laws'] &&
+             data.date is timestamp;
+    }
+
+    function isValidChatSession(data) {
+      return data.keys().hasAll(['title', 'createdAt', 'lastMessage']) &&
+             data.title is string &&
+             data.createdAt is timestamp &&
+             data.lastMessage is string;
+    }
+
+    function isValidContact(data) {
+      return data.keys().hasAll(['name', 'email', 'message', 'createdAt']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.email is string && data.email.size() <= 200 &&
+             data.message is string && data.message.size() <= 5000 &&
+             data.createdAt is timestamp;
+    }
+
+    // --- match blocks ---
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUserProfile(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['conversationsCount', 'badges', 'lastActive', 'customGeminiKey', 'progress', 'totalBadges', 'displayName'])
+      );
+    }
+    
+    match /users/{userId}/accessLogs/{logId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/badgeHistory/{id} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidBadgeHistory(incoming());
+    }
+
+    match /users/{userId}/progressLogs/{id} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidProgressLog(incoming());
+    }
+
+    match /users/{userId}/chats/{chatId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidChatSession(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'title', 'isPinned', 'isArchived'])
+      );
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/chats/{chatId}/messages/{messageId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && incoming().keys().hasAll(['text', 'role', 'createdAt']);
+    }
+
+    match /blogs/{id} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidBlog(incoming());
+      allow delete: if isAdmin();
+    }
+    match /stories/{id} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidBlog(incoming());
+      allow delete: if isAdmin();
+    }
+    match /news/{id} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidBlog(incoming());
+      allow delete: if isAdmin();
+    }
+    match /laws/{id} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidBlog(incoming());
+      allow delete: if isAdmin();
+    }
+    match /contacts/{id} {
+      allow read: if isAdmin();
+      allow create: if isValidContact(incoming());
+    }
+  }
+}
